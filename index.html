@@ -1,0 +1,169 @@
+<head>
+  <!-- Compiled and minified CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+  <!-- Compiled and minified JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+  <link rel="manifest" href="manifest.json">
+
+</head>
+
+<body>
+  <style>
+    /* Original style guide for this can be found here: https://web.dev/window-controls-overlay */
+    /* The styling for the top bar that shows the audio tracking bar, and the artist/track name */
+    .audiobar {
+      /* Always position it at the top */
+      position: fixed;
+      /* Position the left of this box to the titlebar-area-x variable, otherwise fallback to 0. */
+      left: env(titlebar-area-x, 0);
+      /* Position the right of this box to the titlebar-area-x variable, otherwise fallback to 0. */
+      top: env(titlebar-area-y, 0);
+      /* Set the width of the titlebar, to the variable of titlebar-area-width. Otherwise, fallback to 100% width. */
+      width: env(titlebar-area-width, 100%);
+      /* Make the height of the title bar the titlebar-area-height variable, otherwise fallback to 33px high. */
+      height: env(titlebar-area-height, 33px);
+      /* Layout the child items from left to right */
+      flex-direction: row; 
+      /* Use flexbox to control the layout of this div */
+      display: flex;
+      /* Make the background colour the same as the PWA colour*/
+      background-color: #ADD8E6;
+    }
+
+    .content {
+      padding-top: env(titlelbar-area-height, 33px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    audio::-webkit-media-controls-enclosure {
+      background-color: rgba(0, 0, 0, 0);
+      color: white;
+    }
+
+    audio {
+      color: white;
+      padding: 0;
+      margin-top: -5px;
+    }
+  </style>
+
+  <div class="audiobar">
+    <audio controls id="player" style="width: 70%">
+      <source src="music/Brandenburg Concerto no. 1 in F major, BWV. 1046 - I. Allegro.mp3" type="audio/mpeg"
+        id="audiosource">
+    </audio>
+    <div style="display: flex; flex-direction: column; width: 30%; margin-top: 3px">
+      <div style="text-align: center; line-height: 1; font-weight: bold;" id='artist'></div>
+      <div style="text-align: center; line-height: 1;" id='trackname'></div>
+    </div>
+  </div>
+  <!-- Colour the entire background the same light blue as the PWA colour -->
+  <div style="background-color: #ADD8E6; width: 100%; height: 100%; z-index: -100; position: fixed;"></div>
+  <!-- The main playlist container -->
+  <div class="content">
+    <div class="row">
+      <div class="col s12 m12">
+        <div class="card blue-grey darken-1 z-depth-5">
+          <div class="card-content white-text">
+            <span class="card-title">Track list</span>
+            <div class="collection" id='tracklist'>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+
+    ////////////////////////////
+    // Set up PWA Service Worker
+    ////////////////////////////
+    window.addEventListener('load', () => {
+      registerSW();
+    });
+
+    // Register the Service Worker
+    async function registerSW() {
+      if ('serviceWorker' in navigator) {
+        try {
+          await navigator
+            .serviceWorker
+            .register('serviceworker.js');
+        }
+        catch (e) {
+          console.log('SW registration failed');
+        }
+      }
+    }
+
+
+
+    // Attach event handlers to the slider to update as the music plays
+
+    var trackNames = [
+      'Brandenburg Concerto no. 1 in F major, BWV. 1046 - I. Allegro.mp3',
+      'J.S Bach - Cantante Profane No.205 - 3. Air Eole.mp3',
+      'J.S Bach - Cantante Profane No.205 - 9. Air Pallas.mp3',
+      'J.S Bach - Cantata No.152 - III. Recitative.mp3',
+      'J.S Bach - Concerto in A major for orchestra - III. Alla breve.mp3'
+    ];
+
+    var musicContainer = document.getElementById('tracklist');
+    var player = document.getElementById('player');
+    var audioSource = document.getElementById('audiosource');
+
+    trackNames.forEach((track, index) => {
+      let tag = document.createElement('a');
+      tag.classList = 'collection-item ' + (index == 0 ? 'active' : '');
+      tag.setAttribute('href', '#');
+      tag.setAttribute('onclick', 'play(\'' + track + '\')');
+      let text = document.createTextNode(track.substring(0, track.length - 4)); //remove the mp3 end
+      tag.appendChild(text);
+      musicContainer.appendChild(tag);
+    });
+
+    setTrackMetadata(trackNames[0]);
+
+    function play(track) {
+      let trackIndex = trackNames.findIndex(x => x == track);
+
+      document.querySelector('.active').classList.remove('active');
+
+      musicContainer.children[trackIndex].classList.add('active');
+
+      setTrackMetadata(track);
+
+      player.pause();
+      audioSource.setAttribute('src', 'music/' + track);
+      player.load();
+      player.play();
+
+      console.log(track);
+    }
+
+    function setTrackMetadata(track) {
+      let metadata = track.substring(0, track.length - 4).split(' - '); // get the track name without the mp3, split into author and title
+      let artist = metadata[0];
+      let trackName = metadata[1];
+
+      if (artist.length > 20) {
+        artist = artist.substring(0, 20) + '...';
+      }
+
+      if (trackName.length > 20) {
+        trackName = trackName.substring(0, 20) + '...';
+      }
+
+      document.getElementById('artist').innerText = artist;
+      document.getElementById('trackname').innerText = trackName;
+    }
+
+  </script>
+
+</body>
